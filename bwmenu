@@ -43,6 +43,7 @@ TYPE_IDENTITY=4
 # Populated in parse_cli_arguments
 ROFI_OPTIONS=()
 DEDUP_MARK="(+)"
+NOTE_MARK="(Note)"
 
 # Source helper functions
 DIR="$(dirname "$(readlink -f "$0")")"
@@ -123,7 +124,7 @@ rofi_menu() {
 show_items() {
   if item=$(
     echo "$ITEMS" \
-    | jq -r ".[] | select( has( \"login\" ) ) | \"\\(.name)\"" \
+    | jq -r ".[] | select ( .type == $TYPE_LOGIN or .type == $TYPE_NOTE ) | if .type == $TYPE_LOGIN then \"\\(.name)\" else \"\\(.name) $NOTE_MARK\" end" \
     | dedup_lines \
     | rofi_menu
   ); then
@@ -140,7 +141,7 @@ show_items() {
 show_full_items() {
   if item=$(
     echo "$ITEMS" \
-    | jq -r ".[] | select( has( \"login\" )) | \"\\(.id): name: \\(.name), username: \\(.login.username)\"" \
+    | jq -r ".[] | select( .type == $TYPE_LOGIN or .type == $TYPE_NOTE ) | if .type == $TYPE_LOGIN then \"\\(.id): name: \\(.name), username: \\(.login.username)\" else \"\\(.id): name: \\(.name) $NOTE_MARK\" end" \
     | rofi_menu
   ); then
     item_id="$(echo "$item" | cut -d ':' -f 1)"
@@ -159,7 +160,7 @@ show_full_items() {
 show_urls() {
   if url=$(
     echo "$ITEMS" \
-    | jq -r '.[] | select(has("login")) | .login | select(has("uris")).uris | .[].uri' \
+    | jq -r " .[] | select( .type == $TYPE_LOGIN ) | .login | select(has(\"uris\")).uris | .[].uri " \
     | rofi_menu
   ); then
     item_array="$(bw list items --url "$url" --session "$BW_HASH")"
@@ -327,7 +328,7 @@ copy_password() {
     ITEMS="$1"
     show_full_items
   else
-    pass="$(echo "$1" | jq -r '.[0].login.password')"
+    pass="$(echo "$1" | jq -r " if .[0].type == $TYPE_LOGIN then .[0].login.password else .[0].notes end ")"
 
     show_copy_notification "$(echo "$1" | jq -r '.[0]')"
     echo -n "$pass" | clipboard-set

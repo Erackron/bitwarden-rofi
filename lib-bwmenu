@@ -4,8 +4,8 @@
 # Extract item or items matching .name, including deduplication
 # $1: item name, prepended or not with deduplication mark
 array_from_name() {
-  item_name="$(echo "$1" | sed "s/$DEDUP_MARK //")"
-  echo "$ITEMS" | jq -r ". | map(select((.name == \"$item_name\") and (.type == $TYPE_LOGIN)))"
+  item_name="$(echo "$1" | sed "s/$DEDUP_MARK //" | sed "s/ $NOTE_MARK//")"
+  echo "$ITEMS" | jq -r ". | map(select((.name == \"$item_name\") and (.type == $TYPE_LOGIN or .type ==$TYPE_NOTE)))"
 }
 
 # Extract item matching .id
